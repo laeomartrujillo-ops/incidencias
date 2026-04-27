@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Gestión de Incidencias</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f6fa;--white:#fff;--surface2:#f0f2f8;
+    --border:#e4e7f0;--border2:#d0d5e8;
+    --text:#1a1d2e;--text2:#4a5068;--muted:#8b92aa;
+    --accent:#1d4ed8;--accent-lt:#eff6ff;--accent-md:#bfdbfe;
+    --open-c:#f59e0b; --open-bg:#fffbeb; --open-bd:#fde68a;
+    --prog-c:#3b82f6; --prog-bg:#eff6ff; --prog-bd:#bfdbfe;
+    --close-c:#10b981;--close-bg:#ecfdf5;--close-bd:#a7f3d0;
+    --high-c:#ef4444; --high-bg:#fef2f2; --high-bd:#fecaca;
+    --med-c:#f97316;  --med-bg:#fff7ed;  --med-bd:#fed7aa;
+    --low-c:#8b92aa;  --low-bg:#f8f9fc;  --low-bd:#e4e7f0;
+    --sla-ok:#10b981; --sla-ok-bg:#ecfdf5; --sla-ok-bd:#a7f3d0;
+    --sla-risk:#f59e0b;--sla-risk-bg:#fffbeb;--sla-risk-bd:#fde68a;
+    --sla-br:#ef4444; --sla-br-bg:#fef2f2; --sla-br-bd:#fecaca;
+    --admin:#7c3aed;  --admin-lt:#f5f3ff; --admin-md:#ddd6fe;
+    --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+    --shadow:0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);
+    --shadow-lg:0 12px 40px rgba(0,0,0,.14),0 4px 12px rgba(0,0,0,.07);
+    --r:14px;--r-sm:10px;--r-xs:7px;--header-h:58px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
+
+  /* ── LOADING SCREEN ── */
+  #loadingScreen{position:fixed;inset:0;background:var(--white);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+  .loading-logo{width:56px;height:56px;background:var(--accent);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 8px 24px rgba(29,78,216,.35);}
+  .loading-title{font-size:18px;font-weight:900;color:var(--accent);}
+  .loading-sub{font-size:13px;font-weight:600;color:var(--muted);}
+  .loading-bar{width:200px;height:4px;background:var(--border);border-radius:100px;overflow:hidden;}
+  .loading-fill{height:100%;background:var(--accent);border-radius:100px;animation:loadAnim 1.6s ease-in-out infinite;}
+  @keyframes loadAnim{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
+
+  /* ── HEADER ── */
+  header{background:var(--white);border-bottom:1px solid var(--border);padding:0 16px;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300;box-shadow:var(--shadow-sm);gap:10px;}
+  .logo{font-weight:900;color:var(--accent);display:flex;align-items:center;gap:8px;letter-spacing:-.3px;flex-shrink:0;}
+  .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 10px rgba(29,78,216,.3);flex-shrink:0;}
+  .logo-text{display:flex;flex-direction:column;line-height:1.1;}
+  .logo-main{font-size:16px;font-weight:900;color:var(--accent);}
+  .logo-sub{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.3px;}
+  .header-right{display:flex;align-items:center;gap:8px;}
+  .btn-ham{width:38px;height:38px;border-radius:var(--r-xs);border:1.5px solid var(--border);background:var(--white);color:var(--text2);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+  .btn-ham:hover,.btn-ham.active{background:var(--accent-lt);border-color:var(--accent-md);color:var(--accent);}
+  .role-badge{font-size:11px;font-weight:800;padding:4px 10px;border-radius:100px;display:flex;align-items:center;gap:5px;border:1.5px solid;cursor:pointer;transition:all .2s;white-space:nowrap;}
+  .role-badge.visitor{color:var(--muted);background:var(--surface2);border-color:var(--border);}
+  .role-badge.visitor:hover{border-color:var(--admin-md);color:var(--admin);}
+  .role-badge.admin{color:var(--admin);background:var(--admin-lt);border-color:var(--admin-md);}
+  .btn-users,.btn-sla-config{font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;background:var(--white);color:var(--text2);border:1.5px solid var(--border);padding:7px 13px;border-radius:var(--r-xs);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;white-space:nowrap;}
+  .btn-users:hover,.btn-sla-config:hover{background:var(--surface2);color:var(--accent);border-color:var(--accent-md);}
+  .btn-new{font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:var(--r-xs);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:0 3px 10px rgba(29,78,216,.3);white-space:nowrap;}
+  .btn-new:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(29,78,216,.4);}
+
+  /* ── LAYOUT ── */
+  .app{display:grid;grid-template-columns:236px 1fr;min-height:calc(100vh - var(--header-h));}
+  aside{background:var(--white);border-right:1px solid var(--border);padding:18px 0;position:sticky;top:var(--header-h);height:calc(100vh - var(--header-h));overflow-y:auto;transition:transform .3s ease;}
+  .sidebar-section{padding:0 12px;margin-bottom:22px;}
+  .sidebar-label{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:0 6px;margin-bottom:6px;}
+  .fbtn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 10px;background:transparent;border:none;border-radius:var(--r-xs);color:var(--text2);font-family:'Nunito',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;text-align:left;margin-bottom:2px;gap:6px;min-height:40px;}
+  .fbtn:hover{background:var(--surface2);color:var(--text);}
+  .fbtn.active{background:var(--accent-lt);color:var(--accent);}
+  .fbtn .lft{display:flex;align-items:center;gap:7px;}
+  .fbtn .cnt{font-size:11px;font-weight:700;background:var(--surface2);color:var(--muted);padding:1px 7px;border-radius:100px;min-width:22px;text-align:center;flex-shrink:0;}
+  .fbtn.active .cnt{background:var(--accent-md);color:var(--accent);}
+  .fbtn.breach-btn{color:var(--sla-br);}
+  .fbtn.breach-btn:hover,.fbtn.breach-btn.active{background:var(--sla-br-bg);color:var(--sla-br);}
+  .fbtn.breach-btn .cnt{background:#fee2e2;color:var(--sla-br);}
+  .fbtn.risk-btn{color:var(--sla-risk);}
+  .fbtn.risk-btn:hover,.fbtn.risk-btn.active{background:var(--sla-risk-bg);color:var(--sla-risk);}
+  .fbtn.risk-btn .cnt{background:#fef3c7;color:var(--sla-risk);}
+  .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:250;backdrop-filter:blur(2px);}
+  .sidebar-backdrop.on{display:block;}
+
+  main{padding:18px 18px 80px;min-width:0;}
+
+  /* ── KPI ── */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+  .kpi-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;}
+  .kpi-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .kpi-icon.breach{background:var(--sla-br-bg);}
+  .kpi-icon.risk{background:var(--sla-risk-bg);}
+  .kpi-icon.ok{background:var(--sla-ok-bg);}
+  .kpi-icon.total{background:var(--accent-lt);}
+  .kpi-num{font-size:26px;font-weight:900;line-height:1;margin-bottom:1px;}
+  .kpi-num.breach{color:var(--sla-br);}
+  .kpi-num.risk{color:var(--sla-risk);}
+  .kpi-num.ok{color:var(--sla-ok);}
+  .kpi-num.total{color:var(--accent);}
+  .kpi-lbl{font-size:11px;font-weight:600;color:var(--muted);}
+
+  /* ── TOOLBAR ── */
+  .toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center;}
+  .search-wrap{flex:1;position:relative;min-width:0;}
+  .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);pointer-events:none;}
+  .search-box{width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px 10px 34px;color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;transition:all .2s;box-shadow:var(--shadow-sm);}
+  .search-box::placeholder{color:var(--muted);font-weight:500;}
+  .search-box:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,78,216,.1);}
+  .sort-select{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 10px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;outline:none;cursor:pointer;box-shadow:var(--shadow-sm);flex-shrink:0;}
+  .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .section-title{font-size:13px;font-weight:800;color:var(--text2);}
+
+  /* ── TICKET CARD ── */
+  .ticket-list{display:flex;flex-direction:column;gap:9px;}
+  .tcard{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:start;position:relative;overflow:hidden;animation:fadeUp .3s ease both;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .tcard:hover{border-color:var(--accent-md);box-shadow:var(--shadow);}
+  .tcard:active{transform:scale(.99);}
+  .tcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .tcard.st-open::before{background:var(--open-c);}
+  .tcard.st-progress::before{background:var(--prog-c);}
+  .tcard.st-closed::before{background:var(--close-c);}
+  .tcard.sla-breached{border-color:var(--sla-br-bd);}
+  .tcard.sla-at-risk{border-color:var(--sla-risk-bd);}
+  .tc-id{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:var(--muted);margin-bottom:5px;}
+  .sla-timer{font-size:11px;font-weight:700;display:flex;align-items:center;gap:3px;flex-wrap:wrap;}
+  .sla-timer.ok{color:var(--sla-ok);}
+  .sla-timer.risk{color:var(--sla-risk);}
+  .sla-timer.breach{color:var(--sla-br);animation:blink 1.4s ease infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+  .tc-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:5px;line-height:1.35;}
+  .tc-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .tc-meta span{font-size:12px;color:var(--muted);font-weight:600;}
+  .tc-meta .sep{color:var(--border2);}
+  .tc-right{display:flex;flex-direction:column;gap:5px;align-items:flex-end;}
+  .tc-age{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:nowrap;}
+
+  /* ── BADGES ── */
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;display:inline-flex;align-items:center;gap:4px;border:1.5px solid;white-space:nowrap;}
+  .badge.st-open    {color:var(--open-c); background:var(--open-bg); border-color:var(--open-bd);}
+  .badge.st-progress{color:var(--prog-c); background:var(--prog-bg); border-color:var(--prog-bd);}
+  .badge.st-closed  {color:var(--close-c);background:var(--close-bg);border-color:var(--close-bd);}
+  .badge.pr-high    {color:var(--high-c); background:var(--high-bg); border-color:var(--high-bd);}
+  .badge.pr-medium  {color:var(--med-c);  background:var(--med-bg);  border-color:var(--med-bd);}
+  .badge.pr-low     {color:var(--low-c);  background:var(--low-bg);  border-color:var(--low-bd);}
+  .badge.sla-ok     {color:var(--sla-ok); background:var(--sla-ok-bg);border-color:var(--sla-ok-bd);}
+  .badge.sla-risk   {color:var(--sla-risk);background:var(--sla-risk-bg);border-color:var(--sla-risk-bd);}
+  .badge.sla-breach {color:var(--sla-br); background:var(--sla-br-bg);border-color:var(--sla-br-bd);}
+  .badge.sla-pending{color:var(--muted);  background:var(--surface2); border-color:var(--border);}
+
+  /* ── EMPTY ── */
+  .empty{text-align:center;padding:56px 24px;color:var(--muted);}
+  .empty-emoji{font-size:44px;margin-bottom:10px;}
+  .empty h3{font-size:16px;font-weight:800;color:var(--text2);margin-bottom:5px;}
+
+  /* ── MODALS ── */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(30,35,60,.4);backdrop-filter:blur(6px);z-index:500;align-items:flex-end;justify-content:center;}
+  .overlay.on{display:flex;}
+  .modal{background:var(--white);border-radius:22px 22px 0 0;width:100%;max-width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:slideUp .3s cubic-bezier(.4,0,.2,1);}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-hdr{padding:16px 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:5;}
+  .modal-hdr::before{content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);width:36px;height:4px;background:var(--border2);border-radius:2px;}
+  .modal-ttl{font-size:16px;font-weight:900;color:var(--text);display:flex;align-items:center;gap:8px;margin-top:8px;}
+  .modal-x{width:32px;height:32px;border-radius:var(--r-xs);background:var(--surface2);border:1.5px solid var(--border);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit;margin-top:8px;flex-shrink:0;}
+  .modal-x:hover{background:var(--border);color:var(--text);}
+  .modal-body{padding:18px;}
+  .modal-ftr{padding:10px 18px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .form-group label{font-size:12px;font-weight:800;color:var(--text2);}
+  .finput,.fselect,.ftarea{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px 13px;color:var(--text);font-family:'Nunito',sans-serif;font-size:16px;font-weight:600;outline:none;transition:all .2s;width:100%;}
+  .ftarea{resize:vertical;min-height:88px;font-size:15px;}
+  .finput:focus,.fselect:focus,.ftarea:focus{border-color:var(--accent);background:var(--white);box-shadow:0 0 0 3px rgba(29,78,216,.1);}
+  .btn-cancel{background:transparent;border:1.5px solid var(--border);color:var(--text2);padding:12px 18px;border-radius:var(--r-sm);cursor:pointer;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;transition:all .2s;flex:1;}
+  .btn-cancel:hover{background:var(--surface2);}
+  .btn-submit{background:var(--accent);color:#fff;border:none;padding:12px 22px;border-radius:var(--r-sm);cursor:pointer;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;transition:all .2s;box-shadow:0 4px 12px rgba(29,78,216,.3);flex:2;}
+  .btn-submit:hover{transform:translateY(-1px);}
+  .btn-submit:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+  .sla-preview-box{background:linear-gradient(135deg,var(--accent-lt),#f0f4ff);border:1.5px solid var(--accent-md);border-radius:var(--r-sm);padding:13px 15px;margin-top:2px;}
+  .sp-title{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:9px;}
+  .sp-rows{display:flex;flex-direction:column;gap:6px;}
+  .sp-row{display:flex;justify-content:space-between;align-items:center;}
+  .sp-row .k{font-size:12px;font-weight:600;color:var(--text2);}
+  .sp-row .v{font-size:12px;font-weight:800;color:var(--accent);}
+
+  /* Users */
+  .user-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .user-item{display:flex;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;transition:all .2s;}
+  .user-avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;flex-shrink:0;}
+  .user-info{flex:1;min-width:0;}
+  .user-name{font-size:14px;font-weight:800;color:var(--text);}
+  .user-role{font-size:12px;font-weight:600;color:var(--muted);}
+  .user-actions{display:flex;gap:6px;}
+  .user-btn{width:36px;height:36px;border-radius:var(--r-xs);border:1.5px solid var(--border);background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;font-family:inherit;}
+  .user-btn.edit:hover{background:var(--accent-lt);border-color:var(--accent-md);}
+  .user-btn.del:hover{background:var(--sla-br-bg);border-color:var(--sla-br-bd);}
+  .add-user-form{background:var(--bg);border:1.5px dashed var(--border2);border-radius:var(--r-sm);padding:16px;}
+  .add-user-title{font-size:12px;font-weight:800;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+  .add-user-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+
+  /* SLA Config */
+  .sla-config-grid{display:flex;flex-direction:column;gap:14px;}
+  .sla-config-row{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;}
+  .sla-config-label{font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+  .sla-config-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .sla-field{display:flex;flex-direction:column;gap:5px;}
+  .sla-field label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .sla-field input{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r-xs);padding:9px 12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);outline:none;width:100%;transition:all .2s;}
+  .sla-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,78,216,.1);}
+
+  /* Password */
+  .pw-body{padding:24px 20px 10px;text-align:center;}
+  .pw-icon{font-size:44px;margin-bottom:10px;}
+  .pw-title{font-size:20px;font-weight:900;color:var(--text);margin-bottom:6px;}
+  .pw-sub{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+  .pw-input{width:100%;background:var(--bg);border:2px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;color:var(--text);outline:none;text-align:center;letter-spacing:4px;transition:all .2s;}
+  .pw-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,78,216,.1);background:var(--white);}
+  .pw-error{font-size:12px;font-weight:700;color:var(--sla-br);margin-top:8px;min-height:18px;}
+  .pw-btn{width:100%;margin-top:12px;background:var(--accent);color:#fff;border:none;padding:14px;border-radius:var(--r-sm);font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(29,78,216,.3);}
+  .pw-btn:hover{transform:translateY(-1px);}
+  .change-pw-box{background:var(--admin-lt);border:1.5px solid var(--admin-md);border-radius:var(--r-sm);padding:14px 16px;margin-top:16px;}
+  .change-pw-title{font-size:12px;font-weight:800;color:var(--admin);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+  .admin-pill{display:inline-flex;align-items:center;gap:5px;background:var(--admin-lt);color:var(--admin);border:1.5px solid var(--admin-md);border-radius:100px;padding:2px 9px;font-size:11px;font-weight:800;}
+
+  /* ── DETAIL PANEL ── */
+  .dpanel-overlay{display:none;position:fixed;inset:0;background:rgba(30,35,60,.35);backdrop-filter:blur(4px);z-index:400;}
+  .dpanel-overlay.on{display:block;}
+  .dpanel{position:fixed;right:-760px;top:0;bottom:0;width:min(720px,100vw);background:var(--bg);border-left:1.5px solid var(--border);box-shadow:-8px 0 40px rgba(0,0,0,.1);z-index:450;transition:right .35s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column;}
+  .dpanel.on{right:0;}
+  .dp-header{background:var(--white);padding:16px 18px;border-bottom:1.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10;box-shadow:var(--shadow-sm);}
+  .dp-header-left{flex:1;min-width:0;}
+  .dp-header-left h2{font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px;line-height:1.3;}
+  .dp-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .dp-body{padding:16px;flex:1;display:flex;flex-direction:column;gap:14px;}
+  .dp-section{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm);}
+  .dp-sec-hdr{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);}
+  .dp-sec-hdr .icon{font-size:15px;}
+  .dp-sec-hdr .title{font-size:12px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
+  .dp-sec-hdr .extra{margin-left:auto;}
+  .dp-sec-body{padding:16px;}
+  .sm-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px;flex-wrap:wrap;}
+  .sm-label{font-size:13px;font-weight:700;color:var(--text2);}
+  .sm-vals{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .sm-current{font-size:13px;font-weight:800;}
+  .sm-limit{font-size:11px;color:var(--muted);font-weight:600;}
+  .sm-bar{height:8px;background:var(--surface2);border-radius:100px;overflow:hidden;margin-bottom:5px;}
+  .sm-fill{height:100%;border-radius:100px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+  .sm-fill.ok{background:linear-gradient(90deg,#34d399,var(--sla-ok));}
+  .sm-fill.risk{background:linear-gradient(90deg,#fbbf24,var(--sla-risk));}
+  .sm-fill.breach{background:linear-gradient(90deg,#f87171,var(--sla-br));}
+  .sm-fill.pending{background:var(--border);width:0!important;}
+  .sm-note{font-size:11px;font-weight:700;}
+  .sm-note.ok{color:var(--sla-ok);}
+  .sm-note.risk{color:var(--sla-risk);}
+  .sm-note.breach{color:var(--sla-br);}
+  .sla-divider{height:1px;background:var(--border);margin:14px 0;}
+  .real-times-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+  .rt-item{background:var(--bg);border-radius:var(--r-sm);padding:11px 13px;border:1.5px solid var(--border);}
+  .rt-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px;}
+  .rt-val{font-size:20px;font-weight:900;}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .info-item{background:var(--bg);border-radius:var(--r-sm);padding:10px 13px;border:1.5px solid var(--border);}
+  .info-k{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:3px;}
+  .info-v{font-size:13px;font-weight:700;color:var(--text);word-break:break-word;}
+  .desc-box{font-size:13px;font-weight:600;color:var(--text2);line-height:1.7;}
+
+  /* Timeline */
+  .timeline{position:relative;padding-left:22px;}
+  .timeline::before{content:'';position:absolute;left:8px;top:8px;bottom:0;width:2px;background:var(--border);border-radius:2px;}
+  .tl-event{position:relative;margin-bottom:16px;}
+  .tl-event::before{content:'';position:absolute;left:-18px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--border);border:2.5px solid var(--white);box-shadow:0 0 0 2px var(--border);}
+  .tl-event.ev-open::before{background:var(--open-c);box-shadow:0 0 0 2px var(--open-bd);}
+  .tl-event.ev-progress::before{background:var(--prog-c);box-shadow:0 0 0 2px var(--prog-bd);}
+  .tl-event.ev-closed::before{background:var(--close-c);box-shadow:0 0 0 2px var(--close-bd);}
+  .tl-event.ev-response::before{background:var(--accent);box-shadow:0 0 0 2px var(--accent-md);}
+  .tl-event.ev-note::before{background:var(--muted);box-shadow:0 0 0 2px var(--border);}
+  .tl-event.ev-attachment::before{background:#7c3aed;box-shadow:0 0 0 2px #ddd6fe;}
+  .tl-hdr{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;}
+  .tl-action{font-size:13px;font-weight:800;color:var(--text);}
+  .tl-time{font-size:11px;font-weight:600;color:var(--muted);margin-left:auto;}
+  .tl-body{font-size:12px;font-weight:600;color:var(--text2);line-height:1.5;}
+
+  /* Attachment cards in timeline */
+  .tl-attachment{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+  .tl-attach-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;cursor:pointer;transition:all .2s;text-decoration:none;}
+  .tl-attach-item:hover{border-color:var(--accent-md);background:var(--accent-lt);}
+  .tl-attach-icon{font-size:22px;flex-shrink:0;}
+  .tl-attach-info{flex:1;min-width:0;}
+  .tl-attach-name{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tl-attach-meta{font-size:11px;color:var(--muted);font-weight:600;}
+  .tl-attach-action{font-size:11px;font-weight:800;color:var(--accent);flex-shrink:0;}
+  .tl-img-preview{width:100%;max-height:220px;object-fit:cover;border-radius:var(--r-sm);border:1.5px solid var(--border);cursor:pointer;display:block;margin-top:8px;transition:opacity .2s;}
+  .tl-img-preview:hover{opacity:.85;}
+
+  /* Upload progress */
+  .upload-progress{background:var(--accent-lt);border:1.5px solid var(--accent-md);border-radius:var(--r-sm);padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:var(--accent);margin-top:8px;}
+  .upload-bar-wrap{flex:1;height:6px;background:var(--accent-md);border-radius:100px;overflow:hidden;}
+  .upload-bar-fill{height:100%;background:var(--accent);border-radius:100px;transition:width .2s;}
+
+  /* Action bar */
+  .dp-actions{background:var(--white);border-top:1.5px solid var(--border);padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:0;box-shadow:0 -4px 16px rgba(0,0,0,.06);}
+  .note-input{flex:1;min-width:120px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;outline:none;transition:all .2s;}
+  .note-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,78,216,.1);}
+  .act-btn{padding:10px 12px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--white);color:var(--text2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+  .act-btn:hover{background:var(--surface2);}
+  .act-btn.respond{border-color:var(--accent-md);color:var(--accent);background:var(--accent-lt);}
+  .act-btn.respond:hover{background:var(--accent);color:#fff;}
+  .act-btn.progress{border-color:var(--prog-bd);color:var(--prog-c);background:var(--prog-bg);}
+  .act-btn.progress:hover{background:var(--prog-c);color:#fff;}
+  .act-btn.close{border-color:var(--close-bd);color:var(--close-c);background:var(--close-bg);}
+  .act-btn.close:hover{background:var(--close-c);color:#fff;}
+  .attach-bar{width:100%;display:flex;gap:8px;align-items:center;padding:8px 16px 0;flex-wrap:wrap;}
+  .attach-btn{display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:var(--r-sm);border:1.5px dashed var(--border2);background:var(--bg);color:var(--text2);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+  .attach-btn:hover{border-color:var(--accent-md);background:var(--accent-lt);color:var(--accent);}
+  .attach-btn input[type=file]{display:none;}
+  .attach-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  /* FAB */
+  .fab{display:none;position:fixed;bottom:24px;right:20px;z-index:350;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 6px 20px rgba(29,78,216,.45);align-items:center;justify-content:center;transition:all .2s;font-family:inherit;}
+  .fab:active{transform:scale(.92);}
+
+  /* Lightbox */
+  .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9000;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;}
+  .lightbox.on{display:flex;}
+  .lightbox img{max-width:100%;max-height:90vh;border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.5);cursor:default;}
+  .lightbox-close{position:absolute;top:16px;right:16px;width:38px;height:38px;background:rgba(255,255,255,.15);border:none;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+  .lightbox-close:hover{background:rgba(255,255,255,.25);}
+
+  ::-webkit-scrollbar{width:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+  @media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:640px){
+    .app{grid-template-columns:1fr;}
+    aside{position:fixed;left:0;top:0;bottom:0;height:100vh;z-index:260;width:280px;transform:translateX(-100%);box-shadow:var(--shadow-lg);}
+    aside.open{transform:translateX(0);}
+    .btn-ham{display:flex;}
+    header{padding:0 14px;}
+    .logo-sub{display:none;}
+    .btn-users,.btn-sla-config,.btn-new{display:none;}
+    .fab{display:flex;}
+    main{padding:14px 14px 90px;}
+    .kpi-row{gap:8px;margin-bottom:14px;}
+    .kpi-card{padding:12px 13px;gap:10px;}
+    .kpi-icon{width:38px;height:38px;font-size:18px;}
+    .kpi-num{font-size:22px;}
+    .kpi-lbl{font-size:10px;}
+    .tcard{grid-template-columns:1fr auto;gap:10px;padding:13px 14px;}
+    .tc-left-col{display:flex;flex-direction:column;gap:3px;}
+    .badge{font-size:10px;padding:2px 7px;}
+    .form-row{grid-template-columns:1fr;}
+    .add-user-row{grid-template-columns:1fr;}
+    .sla-config-fields{grid-template-columns:1fr;}
+    .dpanel{width:100%;right:-100%;}
+    .dpanel.on{right:0;}
+    .info-grid{grid-template-columns:1fr;}
+    .real-times-grid{grid-template-columns:1fr;}
+    .dp-actions{padding-bottom:max(12px,env(safe-area-inset-bottom));flex-wrap:wrap;}
+    .note-input{width:100%;flex:none;}
+    .act-btns-row{display:flex;gap:8px;width:100%;}
+    .act-btn{flex:1;text-align:center;padding:10px 6px;font-size:11px;}
+    .modal-ftr{padding-bottom:max(20px,env(safe-area-inset-bottom));}
+    .attach-bar{padding:6px 14px 0;}
+    .attach-btn{font-size:11px;padding:7px 10px;}
+  }
+  @media(max-width:380px){.logo-main{font-size:14px;}.logo-icon{width:30px;height:30px;font-size:14px;}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div class="loading-logo">📋</div>
+  <div class="loading-title">Gestión de Incidencias</div>
+  <div class="loading-sub">Conectando con Firebase…</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="btn-ham" id="hamBtn" onclick="toggleSidebar()">☰</button>
+    <div class="logo">
+      <div class="logo-icon">📋</div>
+      <div class="logo-text">
+        <div class="logo-main">Gestión de Incidencias</div>
+        <div class="logo-sub">No Conformidades</div>
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn-sla-config admin-only" onclick="openSLAConfig()" style="display:none">⚙️ Config. SLA</button>
+    <button class="btn-users admin-only" onclick="openUsersModal()" style="display:none">👥 Personal</button>
+    <button class="btn-new" onclick="openNewModal()">✦ Nueva Incidencia</button>
+    <div class="role-badge visitor" id="roleBadge" onclick="handleRoleBadgeClick()">🔒 Visitante</div>
+  </div>
+</header>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+<div class="app">
+  <aside id="sidebar">
+    <div style="padding:12px 14px 4px;display:none" id="sidebarMobileActions">
+      <button class="btn-submit" style="width:100%;margin-bottom:8px;border-radius:var(--r-sm);padding:12px;background:var(--accent);color:#fff;border:none;font-family:Nunito,sans-serif;font-size:14px;font-weight:800;cursor:pointer;" onclick="openNewModal();closeSidebar()">✦ Nueva Incidencia</button>
+      <div id="adminMobileBtns" style="display:none;display:flex;flex-direction:column;gap:6px;">
+        <button class="btn-users" style="width:100%;justify-content:center;border-radius:var(--r-sm);padding:10px" onclick="openUsersModal();closeSidebar()">👥 Personal</button>
+        <button class="btn-sla-config" style="width:100%;justify-content:center;border-radius:var(--r-sm);padding:10px" onclick="openSLAConfig();closeSidebar()">⚙️ Config. SLA</button>
+      </div>
+    </div>
+    <div class="sidebar-section" style="margin-top:10px">
+      <div class="sidebar-label">Estado</div>
+      <button class="fbtn active" onclick="setFilter('all',this)"><span class="lft">🗂 Todos</span><span class="cnt" id="cnt-all">0</span></button>
+      <button class="fbtn" onclick="setFilter('open',this)"><span class="lft">🟡 Abiertos</span><span class="cnt" id="cnt-open">0</span></button>
+      <button class="fbtn" onclick="setFilter('progress',this)"><span class="lft">🔵 En progreso</span><span class="cnt" id="cnt-progress">0</span></button>
+      <button class="fbtn" onclick="setFilter('closed',this)"><span class="lft">🟢 Cerrados</span><span class="cnt" id="cnt-closed">0</span></button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">SLA</div>
+      <button class="fbtn breach-btn" onclick="setFilter('sla-breach',this)"><span class="lft">🔴 Incumplido</span><span class="cnt" id="cnt-sla-breach">0</span></button>
+      <button class="fbtn risk-btn"   onclick="setFilter('sla-risk',this)"><span class="lft">🟠 En riesgo</span><span class="cnt" id="cnt-sla-risk">0</span></button>
+      <button class="fbtn" onclick="setFilter('sla-ok',this)"><span class="lft">✅ Cumplido</span><span class="cnt" id="cnt-sla-ok">0</span></button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Prioridad</div>
+      <button class="fbtn" onclick="setFilter('high',this)"><span class="lft">🔴 Alta</span><span class="cnt" id="cnt-high">0</span></button>
+      <button class="fbtn" onclick="setFilter('medium',this)"><span class="lft">🟠 Media</span><span class="cnt" id="cnt-medium">0</span></button>
+      <button class="fbtn" onclick="setFilter('low',this)"><span class="lft">⚪ Baja</span><span class="cnt" id="cnt-low">0</span></button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Tipo de incidencia</div>
+      <button class="fbtn" onclick="setFilter('Queja',this)"><span class="lft">😤 Queja</span><span class="cnt" id="cnt-Queja">0</span></button>
+      <button class="fbtn" onclick="setFilter('NoConformidad',this)"><span class="lft">❌ No Conformidad</span><span class="cnt" id="cnt-NoConformidad">0</span></button>
+      <button class="fbtn" onclick="setFilter('Observacion',this)"><span class="lft">🔍 Observación</span><span class="cnt" id="cnt-Observacion">0</span></button>
+      <button class="fbtn" onclick="setFilter('Mejora',this)"><span class="lft">💡 Oportunidad de Mejora</span><span class="cnt" id="cnt-Mejora">0</span></button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="kpi-row" id="kpiRow"></div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-box" type="text" placeholder="Buscar..." oninput="renderTickets()" id="searchInput">
+      </div>
+      <select class="sort-select" onchange="renderTickets()" id="sortSelect">
+        <option value="newest">⬇ Recientes</option>
+        <option value="oldest">⬆ Antiguos</option>
+        <option value="priority">🔥 Prioridad</option>
+        <option value="sla">⚠ SLA</option>
+      </select>
+    </div>
+    <div class="section-hdr">
+      <div class="section-title" id="sectionTitle">Todos los registros</div>
+    </div>
+    <div class="ticket-list" id="ticketList"></div>
+  </main>
+</div>
+
+<button class="fab" onclick="openNewModal()">＋</button>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="Evidencia" onclick="event.stopPropagation()">
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="overlay" id="pwModal">
+  <div class="modal" style="max-width:100%">
+    <div class="modal-hdr" style="border:none;justify-content:flex-end;padding-bottom:0">
+      <button class="modal-x" onclick="closeModal('pwModal')" style="margin-top:8px">✕</button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-icon">🔐</div>
+      <div class="pw-title">Acceso Administrador</div>
+      <div class="pw-sub">Ingresa la contraseña para desbloquear la configuración completa.</div>
+      <input class="pw-input" type="password" id="pwInput" placeholder="••••••" maxlength="20" onkeydown="if(event.key==='Enter')checkPassword()">
+      <div class="pw-error" id="pwError"></div>
+      <button class="pw-btn" onclick="checkPassword()">🔓 Ingresar como administrador</button>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;font-weight:600">Contraseña inicial: <strong>admin123</strong></div>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- NUEVA INCIDENCIA -->
+<div class="overlay" id="newModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-ttl">📋 Nueva Incidencia</div>
+      <button class="modal-x" onclick="closeModal('newModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>👤 Registrado por</label>
+        <select class="fselect" id="f-reporter"><option value="">— Seleccionar persona —</option></select>
+      </div>
+      <div class="form-group"><label>📧 Email / contacto</label>
+        <input class="finput" id="f-email" placeholder="contacto@empresa.com" type="email">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0"><label>🗂 Tipo</label>
+          <select class="fselect" id="f-category">
+            <option value="Queja">😤 Queja</option>
+            <option value="NoConformidad">❌ No Conformidad</option>
+            <option value="Observacion">🔍 Observación</option>
+            <option value="Mejora">💡 Oportunidad de Mejora</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0"><label>🔥 Prioridad</label>
+          <select class="fselect" id="f-priority" onchange="updateSLAPreview()">
+            <option value="high">🔴 Alta</option>
+            <option value="medium" selected>🟠 Media</option>
+            <option value="low">⚪ Baja</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:14px"><label>📝 Asunto</label>
+        <input class="finput" id="f-subject" placeholder="Describe brevemente la incidencia">
+      </div>
+      <div class="form-group"><label>💬 Descripción detallada</label>
+        <textarea class="ftarea" id="f-description" placeholder="Qué ocurrió, cuándo, cómo afecta al proceso..."></textarea>
+      </div>
+      <div class="form-group"><label>📍 Ubicación / Área</label>
+        <input class="finput" id="f-location" placeholder="Ej. Área de operaciones, Recepción...">
+      </div>
+      <div class="sla-preview-box" id="slaPreview"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeModal('newModal')">Cancelar</button>
+      <button class="btn-submit" id="btnCreateTicket" onclick="createTicket()">✦ Crear registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAL (admin) -->
+<div class="overlay" id="usersModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-ttl">👥 Gestionar Personal <span class="admin-pill">🛡 Admin</span></div>
+      <button class="modal-x" onclick="closeModal('usersModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="user-list" id="userList"></div>
+      <div class="add-user-form">
+        <div class="add-user-title" id="addUserTitle">➕ Agregar nuevo miembro</div>
+        <input type="hidden" id="edit-user-id">
+        <div class="add-user-row">
+          <div class="form-group" style="margin-bottom:0"><label>Nombre completo</label><input class="finput" id="u-name" placeholder="Ej. Juan Pérez"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Puesto / Rol</label><input class="finput" id="u-role" placeholder="Ej. Jefe de Calidad"></div>
+        </div>
+        <div class="add-user-row">
+          <div class="form-group" style="margin-bottom:0"><label>Email</label><input class="finput" id="u-email" placeholder="persona@empresa.com" type="email"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Color de avatar</label>
+            <select class="fselect" id="u-color">
+              <option value="#1d4ed8">🔵 Azul</option><option value="#7c3aed">🟣 Morado</option>
+              <option value="#059669">🟢 Verde</option><option value="#dc2626">🔴 Rojo</option>
+              <option value="#d97706">🟡 Naranja</option><option value="#0891b2">🩵 Cyan</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn-submit" style="flex:2" onclick="saveUser()">Guardar</button>
+          <button class="btn-cancel" style="flex:1" onclick="cancelEditUser()">Cancelar</button>
+        </div>
+      </div>
+      <div class="change-pw-box">
+        <div class="change-pw-title">🔑 Cambiar contraseña de administrador</div>
+        <div class="form-group" style="margin-bottom:10px"><label>Nueva contraseña</label><input class="finput" type="password" id="new-pw" placeholder="Mínimo 6 caracteres"></div>
+        <div class="form-group" style="margin-bottom:0"><label>Confirmar contraseña</label><input class="finput" type="password" id="confirm-pw" placeholder="Repite la contraseña"></div>
+        <div class="pw-error" id="changePwError" style="text-align:left;margin-top:6px"></div>
+        <button class="btn-submit" style="margin-top:10px;width:100%;flex:none" onclick="changePassword()">Actualizar contraseña</button>
+      </div>
+    </div>
+    <div class="modal-ftr" style="border-top:none;padding-top:0">
+      <button class="btn-cancel" style="flex:none" onclick="closeModal('usersModal')">Cerrar</button>
+      <button style="flex:none;padding:9px 16px;border-radius:var(--r-sm);border:1.5px solid var(--sla-br-bd);background:var(--sla-br-bg);color:var(--sla-br);font-family:Nunito,sans-serif;font-size:12px;font-weight:800;cursor:pointer;" onclick="logout()">🔒 Cerrar sesión</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG SLA (admin) -->
+<div class="overlay" id="slaConfigModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-ttl">⚙️ Configuración de SLA <span class="admin-pill">🛡 Admin</span></div>
+      <button class="modal-x" onclick="closeModal('slaConfigModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:16px;line-height:1.5">Define los tiempos máximos por prioridad. Se guardan en Firebase y aplican a todos los usuarios.</p>
+      <div class="sla-config-grid" id="slaConfigGrid"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeModal('slaConfigModal')">Cancelar</button>
+      <button class="btn-submit" onclick="saveSLAConfig()">💾 Guardar en Firebase</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="dpanel-overlay" id="dOverlay" onclick="closeDetail()"></div>
+<div class="dpanel" id="dPanel">
+  <div class="dp-header">
+    <div class="dp-header-left">
+      <h2 id="dp-subject">—</h2>
+      <div class="dp-meta" id="dp-meta"></div>
+    </div>
+    <button class="modal-x" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="dp-body">
+    <div class="dp-section">
+      <div class="dp-sec-hdr"><span class="icon">📊</span><span class="title">SLA — Nivel de Servicio</span><div class="extra" id="dp-sla-badge"></div></div>
+      <div class="dp-sec-body" id="dp-sla"></div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-sec-hdr"><span class="icon">💬</span><span class="title">Descripción</span></div>
+      <div class="dp-sec-body"><div class="desc-box" id="dp-desc"></div></div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-sec-hdr"><span class="icon">ℹ️</span><span class="title">Información</span></div>
+      <div class="dp-sec-body"><div class="info-grid" id="dp-info"></div></div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-sec-hdr"><span class="icon">🕐</span><span class="title">Historial de seguimiento</span></div>
+      <div class="dp-sec-body"><div class="timeline" id="dp-timeline"></div></div>
+    </div>
+  </div>
+  <div class="dp-actions">
+    <input class="note-input" id="noteInput" placeholder="✍ Agregar nota...">
+    <div class="act-btns-row">
+      <button class="act-btn" onclick="addNote()">Agregar</button>
+      <button class="act-btn respond admin-only"  onclick="registerResponse()" id="btn-respond" style="display:none">✓ Respuesta</button>
+      <button class="act-btn progress admin-only" onclick="changeStatus('progress')" id="btn-progress" style="display:none">▶ Progreso</button>
+      <button class="act-btn close admin-only"    onclick="changeStatus('closed')"   id="btn-close" style="display:none">✓ Cerrar</button>
+    </div>
+  </div>
+  <div class="attach-bar">
+    <label class="attach-btn" id="btnAttachPhoto">
+      📷 Subir fotografía
+      <input type="file" id="filePhoto" accept="image/*" onchange="attachFile(this,'photo')">
+    </label>
+    <label class="attach-btn" id="btnAttachPDF">
+      📄 Subir PDF / Plan de acción
+      <input type="file" id="filePDF" accept="application/pdf" onchange="attachFile(this,'pdf')">
+    </label>
+  </div>
+  <div style="height:12px"></div>
+</div>
+
+<!-- Firebase SDKs (solo Firestore — sin Storage) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* ══════════════════════════════════════
+   FIREBASE CONFIG
+══════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBOoSN6fnFDAuhMH9KMGC40YigdTiS2JwU",
+  authDomain: "gestion-incidencias-6c0ee.firebaseapp.com",
+  projectId: "gestion-incidencias-6c0ee",
+  storageBucket: "gestion-incidencias-6c0ee.firebasestorage.app",
+  messagingSenderId: "673610455207",
+  appId: "1:673610455207:web:8ac08ad0a0a339c3682382"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
+let ADMIN_HASH = btoa('admin123');
+let isAdmin = false;
+
+function checkPassword(){
+  const val=document.getElementById('pwInput').value;
+  const err=document.getElementById('pwError');
+  if(btoa(val)===ADMIN_HASH){
+    isAdmin=true; closeModal('pwModal');
+    document.getElementById('pwInput').value=''; err.textContent='';
+    applyRole(); showToast('✅ Sesión de administrador iniciada');
+  } else {
+    err.textContent='❌ Contraseña incorrecta.';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+function logout(){
+  isAdmin=false; closeModal('usersModal'); applyRole();
+  showToast('🔒 Sesión de administrador cerrada');
+}
+
+function handleRoleBadgeClick(){
+  if(isAdmin) logout();
+  else{ openModal('pwModal'); setTimeout(()=>document.getElementById('pwInput').focus(),400); }
+}
+
+function applyRole(){
+  const badge=document.getElementById('roleBadge');
+  badge.className=isAdmin?'role-badge admin':'role-badge visitor';
+  badge.innerHTML=isAdmin?'🛡 Administrador':'🔒 Visitante';
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display=isAdmin?'':'none');
+  const amb=document.getElementById('adminMobileBtns');
+  if(amb) amb.style.display=isAdmin?'flex':'none';
+  if(curId) openDetail(curId);
+}
+
+function changePassword(){
+  const np=document.getElementById('new-pw').value;
+  const cp=document.getElementById('confirm-pw').value;
+  const err=document.getElementById('changePwError');
+  if(np.length<6){err.textContent='❌ Mínimo 6 caracteres.';return;}
+  if(np!==cp){err.textContent='❌ Las contraseñas no coinciden.';return;}
+  ADMIN_HASH=btoa(np); err.textContent='';
+  document.getElementById('new-pw').value='';
+  document.getElementById('confirm-pw').value='';
+  showToast('✅ Contraseña actualizada');
+}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+function showToast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1d2e;color:#fff;padding:10px 18px;border-radius:100px;font-family:Nunito,sans-serif;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:fadeUp .3s ease;white-space:nowrap;';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+
+/* ══════════════════════════════════════
+   SLA
+══════════════════════════════════════ */
+let SLA_CFG = {high:{r:1,s:4},medium:{r:4,s:24},low:{r:8,s:72}};
+const RISK_AT = 0.75;
+
+async function loadSLAConfig(){
+  try{
+    const doc=await db.collection('config').doc('sla').get();
+    if(doc.exists) SLA_CFG=doc.data();
+  }catch(e){console.warn('SLA config not in DB yet, using defaults');}
+}
+
+function openSLAConfig(){
+  if(!isAdmin){showToast('🔒 Solo el administrador puede acceder');return;}
+  const g=document.getElementById('slaConfigGrid');
+  const prios=[{key:'high',label:'🔴 Alta',desc:'Incidencias críticas'},{key:'medium',label:'🟠 Media',desc:'Incidencias moderadas'},{key:'low',label:'⚪ Baja',desc:'Incidencias menores'}];
+  g.innerHTML=prios.map(p=>`
+    <div class="sla-config-row">
+      <div class="sla-config-label">${p.label} <span style="font-size:12px;font-weight:600;color:var(--muted)">${p.desc}</span></div>
+      <div class="sla-config-fields">
+        <div class="sla-field"><label>⚡ Respuesta máx. (horas)</label><input type="number" id="cfg-${p.key}-r" value="${SLA_CFG[p.key].r}" min="0.5" step="0.5"></div>
+        <div class="sla-field"><label>🏁 Resolución máx. (horas)</label><input type="number" id="cfg-${p.key}-s" value="${SLA_CFG[p.key].s}" min="1" step="1"></div>
+      </div>
+    </div>`).join('');
+  openModal('slaConfigModal');
+}
+
+async function saveSLAConfig(){
+  const keys=['high','medium','low'];
+  const newCfg={};
+  for(const k of keys){
+    const r=parseFloat(document.getElementById(`cfg-${k}-r`).value);
+    const s=parseFloat(document.getElementById(`cfg-${k}-s`).value);
+    if(!r||!s||r<=0||s<=0){showToast('❌ Todos los valores deben ser mayores a 0');return;}
+    newCfg[k]={r,s};
+  }
+  try{
+    await db.collection('config').doc('sla').set(newCfg);
+    SLA_CFG=newCfg;
+    closeModal('slaConfigModal');
+    refresh(); updateSLAPreview();
+    showToast('✅ Configuración SLA guardada en Firebase');
+  }catch(e){showToast('❌ Error al guardar: '+e.message);}
+}
+
+/* ══════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════ */
+const CAT_ICONS={Queja:'😤',NoConformidad:'❌',Observacion:'🔍',Mejora:'💡'};
+const CAT_LABELS={Queja:'Queja',NoConformidad:'No Conformidad',Observacion:'Observación',Mejora:'Oportunidad de Mejora'};
+function catLabel(c){return CAT_LABELS[c]||c;}
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let tickets=[],users=[],curFilter='all',curId=null,editUid=null;
+let unsubTickets=null,unsubUsers=null; // Firestore listeners
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function initials(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+function avatarEl(u,sz=38){return`<div class="user-avatar" style="background:${u.color||'#1d4ed8'};width:${sz}px;height:${sz}px;font-size:${sz*.38}px">${initials(u.name)}</div>`;}
+function avatarInline(u,sz=22){return`<div style="background:${u.color||'#1d4ed8'};width:${sz}px;height:${sz}px;font-size:${sz*.4}px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:900;flex-shrink:0">${initials(u.name)}</div>`;}
+
+function eH(from,to){
+  if(!from)return null;
+  const f=from instanceof Date?from:from.toDate?from.toDate():new Date(from);
+  const t=to?(to instanceof Date?to:to.toDate?to.toDate():new Date(to)):new Date();
+  return(t.getTime()-f.getTime())/3600000;
+}
+
+function calcSLA(t){
+  const rl=t.sla_r,sl=t.sla_s;
+  let re=null,rs='pending';
+  if(t.fecha_resp){re=eH(t.fecha_creacion,t.fecha_resp);rs=re<=rl?'ok':'breach';}
+  else if(t.status!=='closed'){re=eH(t.fecha_creacion);rs=re>rl?'breach':re>rl*RISK_AT?'risk':'ok';}
+  let se=null,ss='pending';
+  if(t.status==='closed'&&t.fecha_cierre){se=eH(t.fecha_creacion,t.fecha_cierre);ss=se<=sl?'ok':'breach';}
+  else if(t.status!=='closed'){se=eH(t.fecha_creacion);ss=se>sl?'breach':se>sl*RISK_AT?'risk':'ok';}
+  const rp=re!=null?Math.min((re/rl)*100,100):0;
+  const sp=se!=null?Math.min((se/sl)*100,100):0;
+  const rank={ok:0,pending:0,risk:1,breach:2};
+  const ov=rank[rs]>=rank[ss]?rs:ss;
+  return{rs,ss,re,se,rl,sl,rp,sp,ov};
+}
+
+function fmtH(h){if(h==null)return'—';if(h<1)return Math.round(h*60)+'m';if(h<24)return h.toFixed(1)+'h';return(h/24).toFixed(1)+'d';}
+function fmtSize(bytes){if(bytes<1024)return bytes+'B';if(bytes<1048576)return(bytes/1024).toFixed(1)+'KB';return(bytes/1048576).toFixed(1)+'MB';}
+
+const SLA_LABELS={ok:'✅ Cumplido',risk:'⚠️ En riesgo',breach:'❌ Incumplido',pending:'⏳ Pendiente'};
+const SLA_CLS={ok:'sla-ok',risk:'sla-risk',breach:'sla-breach',pending:'sla-pending'};
+
+function toDate(v){if(!v)return null;if(v instanceof Date)return v;if(v.toDate)return v.toDate();return new Date(v);}
+
+function fmtRel(d){
+  const dt=toDate(d);if(!dt)return'—';
+  const diff=Date.now()-dt.getTime(),m=Math.floor(diff/60000);
+  if(m<60)return`hace ${m}m`;
+  const h=Math.floor(m/60);if(h<24)return`hace ${h}h`;
+  return`hace ${Math.floor(h/24)}d`;
+}
+function fmtAbs(d){
+  const dt=toDate(d);if(!dt)return'—';
+  return dt.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+function getUser(id){return users.find(u=>u.id===id);}
+function userName(id){const u=getUser(id);return u?u.name:'Desconocido';}
+function genId(){const max=tickets.reduce((m,t)=>Math.max(m,parseInt((t.id||'NC-000').replace('NC-',''))||0),0);return'NC-'+String(max+1).padStart(3,'0');}
+
+/* ══════════════════════════════════════
+   FIRESTORE REAL-TIME LISTENERS
+══════════════════════════════════════ */
+function startListeners(){
+  // Tickets — real-time updates for all users
+  unsubTickets=db.collection('tickets').orderBy('fecha_creacion','desc')
+    .onSnapshot(snap=>{
+      tickets=snap.docs.map(d=>({id:d.id,...d.data()}));
+      refresh();
+      if(curId){
+        const t=tickets.find(tk=>tk.id===curId);
+        if(t){renderSLAPanel(t,calcSLA(t));renderTimeline(t);}
+      }
+    },err=>console.error('Tickets listener error:',err));
+
+  // Users — real-time updates
+  unsubUsers=db.collection('users').orderBy('name')
+    .onSnapshot(snap=>{
+      users=snap.docs.map(d=>({id:d.id,...d.data()}));
+      populateReporterSelect();
+      renderUserList();
+    },err=>console.error('Users listener error:',err));
+}
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+async function init(){
+  try{
+    await loadSLAConfig();
+    startListeners();
+    showMobileActions();
+    updateSLAPreview();
+    applyRole();
+    // Auto-refresh SLA timers every 60s
+    setInterval(()=>{renderTickets();renderKPI();updateCounts();if(curId)refreshSLA();},60000);
+    // Hide loading after short delay to ensure data loaded
+    setTimeout(hideLoading,1500);
+  }catch(e){
+    document.querySelector('.loading-sub').textContent='Error de conexión. Verifica tu internet.';
+    console.error(e);
+  }
+}
+
+function hideLoading(){
+  const ls=document.getElementById('loadingScreen');
+  ls.style.transition='opacity .4s';
+  ls.style.opacity='0';
+  setTimeout(()=>ls.remove(),400);
+}
+
+function showMobileActions(){
+  const ma=document.getElementById('sidebarMobileActions');
+  if(ma&&window.innerWidth<=640)ma.style.display='block';
+}
+
+function refresh(){updateCounts();renderKPI();renderTickets();}
+
+/* ══════════════════════════════════════
+   COUNTS + KPI
+══════════════════════════════════════ */
+function updateCounts(){
+  const c={all:tickets.length,open:0,progress:0,closed:0,high:0,medium:0,low:0,Queja:0,NoConformidad:0,Observacion:0,Mejora:0,'sla-breach':0,'sla-risk':0,'sla-ok':0};
+  tickets.forEach(t=>{
+    c[t.status]=(c[t.status]||0)+1;
+    c[t.priority]=(c[t.priority]||0)+1;
+    if(c[t.category]!==undefined)c[t.category]++;
+    const ov=calcSLA(t).ov;
+    if(ov==='breach')c['sla-breach']++;else if(ov==='risk')c['sla-risk']++;else if(ov==='ok')c['sla-ok']++;
+  });
+  Object.keys(c).forEach(k=>{const el=document.getElementById('cnt-'+k);if(el)el.textContent=c[k];});
+}
+
+function renderKPI(){
+  let breach=0,risk=0,ok=0;
+  tickets.forEach(t=>{const ov=calcSLA(t).ov;if(ov==='breach')breach++;else if(ov==='risk')risk++;else if(ov==='ok')ok++;});
+  const total=tickets.length,pct=total?Math.round((ok/total)*100):100,pc=pct>=80?'ok':pct>=60?'risk':'breach';
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi-card"><div class="kpi-icon breach">🚨</div><div><div class="kpi-num breach">${breach}</div><div class="kpi-lbl">SLA Incumplido</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon risk">⚠️</div><div><div class="kpi-num risk">${risk}</div><div class="kpi-lbl">En Riesgo</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon ok">✅</div><div><div class="kpi-num ok">${ok}</div><div class="kpi-lbl">SLA Cumplido</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon total">📈</div><div><div class="kpi-num ${pc}">${pct}%</div><div class="kpi-lbl">Cumplimiento</div></div></div>`;
+}
+
+/* ══════════════════════════════════════
+   SIDEBAR / FILTER
+══════════════════════════════════════ */
+function toggleSidebar(){
+  const s=document.getElementById('sidebar'),b=document.getElementById('sidebarBackdrop'),h=document.getElementById('hamBtn'),ma=document.getElementById('sidebarMobileActions');
+  const open=s.classList.toggle('open');
+  b.classList.toggle('on',open);h.classList.toggle('active',open);
+  if(ma)ma.style.display=open?'block':'none';
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('on');
+  document.getElementById('hamBtn').classList.remove('active');
+  const ma=document.getElementById('sidebarMobileActions');if(ma)ma.style.display='none';
+}
+
+function setFilter(f,btn){
+  curFilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTickets();
+  if(window.innerWidth<=640)closeSidebar();
+}
+
+function getFiltered(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  let list=tickets.filter(t=>{
+    const ov=calcSLA(t).ov;
+    if(curFilter==='all')return true;
+    if(['open','progress','closed'].includes(curFilter))return t.status===curFilter;
+    if(['high','medium','low'].includes(curFilter))return t.priority===curFilter;
+    if(curFilter==='sla-breach')return ov==='breach';
+    if(curFilter==='sla-risk')return ov==='risk';
+    if(curFilter==='sla-ok')return ov==='ok';
+    return t.category===curFilter;
+  });
+  if(q)list=list.filter(t=>
+    userName(t.reporter).toLowerCase().includes(q)||
+    t.subject.toLowerCase().includes(q)||
+    (t.id||'').toLowerCase().includes(q)||
+    catLabel(t.category).toLowerCase().includes(q)||
+    (t.location||'').toLowerCase().includes(q));
+  const sort=document.getElementById('sortSelect').value;
+  const pr={high:0,medium:1,low:2},sr={breach:0,risk:1,ok:2,pending:3};
+  if(sort==='oldest')list.sort((a,b)=>eH(b.fecha_creacion,a.fecha_creacion)||0);
+  else if(sort==='priority')list.sort((a,b)=>pr[a.priority]-pr[b.priority]);
+  else if(sort==='sla')list.sort((a,b)=>sr[calcSLA(a).ov]-sr[calcSLA(b).ov]);
+  else list.sort((a,b)=>eH(a.fecha_creacion,b.fecha_creacion)||0);
+  return list;
+}
+
+function renderTickets(){
+  const list=getFiltered();
+  const el=document.getElementById('ticketList');
+  const fL={all:'Todos los registros',open:'Abiertos',progress:'En progreso',closed:'Cerrados',high:'Prioridad alta',medium:'Prioridad media',low:'Prioridad baja','sla-breach':'SLA incumplido','sla-risk':'SLA en riesgo','sla-ok':'SLA cumplido',Queja:'Quejas',NoConformidad:'No Conformidades',Observacion:'Observaciones',Mejora:'Oportunidades de Mejora'};
+  document.getElementById('sectionTitle').textContent=(fL[curFilter]||curFilter)+` (${list.length})`;
+  if(!list.length){el.innerHTML=`<div class="empty"><div class="empty-emoji">📭</div><h3>Sin registros</h3><p>No hay incidencias que coincidan.</p></div>`;return;}
+  const stL={open:'Abierto',progress:'En progreso',closed:'Cerrado'},prL={high:'Alta',medium:'Media',low:'Baja'};
+  el.innerHTML=list.map((t,i)=>{
+    const sla=calcSLA(t),cc=sla.ov==='breach'?'sla-breached':sla.ov==='risk'?'sla-at-risk':'';
+    let timer='';
+    if(t.status!=='closed'){const rem=t.sla_s-eH(t.fecha_creacion);timer=rem>0?`<div class="sla-timer ${sla.ss}">⏱ ${fmtH(rem)} rest.</div>`:`<div class="sla-timer breach">⏱ +${fmtH(-rem)} exc.</div>`;}
+    else if(t.fecha_cierre){timer=`<div class="sla-timer ${sla.ss}">✓ ${fmtH(eH(t.fecha_creacion,t.fecha_cierre))}</div>`;}
+    const usr=getUser(t.reporter),av=usr?avatarInline(usr,20):'';
+    // Count attachments
+    const attCount=(t.events||[]).reduce((s,e)=>s+((e.attachments||[]).length),0);
+    return`<div class="tcard st-${t.status} ${cc}" onclick="openDetail('${t.id}')" style="animation-delay:${i*.04}s">
+      <div class="tc-left-col"><div class="tc-id">${t.id||''}</div>${timer}</div>
+      <div>
+        <div class="tc-title">${CAT_ICONS[t.category]||''} ${t.subject}</div>
+        <div class="tc-meta">${av}<span>${userName(t.reporter)}</span><span class="sep">·</span><span>${catLabel(t.category)}</span>${t.location?`<span class="sep">·</span><span>📍${t.location}</span>`:''}${attCount?`<span class="sep">·</span><span>📎 ${attCount}</span>`:''}</div>
+      </div>
+      <div class="tc-right">
+        <span class="badge st-${t.status}">${stL[t.status]}</span>
+        <span class="badge pr-${t.priority}">${prL[t.priority]}</span>
+        <span class="badge ${SLA_CLS[sla.ov]}">${SLA_LABELS[sla.ov]}</span>
+        <div class="tc-age">${fmtRel(t.fecha_creacion)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   MODALS
+══════════════════════════════════════ */
+function openModal(id){document.getElementById(id).classList.add('on');}
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+function openNewModal(){populateReporterSelect();openModal('newModal');updateSLAPreview();}
+
+function updateSLAPreview(){
+  const p=document.getElementById('f-priority')?.value||'medium',c=SLA_CFG[p];
+  document.getElementById('slaPreview').innerHTML=`
+    <div class="sp-title">📋 SLA que se aplicará</div>
+    <div class="sp-rows">
+      <div class="sp-row"><span class="k">⚡ Primera respuesta</span><span class="v">${c.r}h máx.</span></div>
+      <div class="sp-row"><span class="k">🏁 Resolución</span><span class="v">${fmtH(c.s)} máx.</span></div>
+      <div class="sp-row"><span class="k">☁️ Datos guardados en</span><span class="v">Firestore (sin Storage)</span></div>
+    </div>`;
+}
+
+function populateReporterSelect(){
+  const sel=document.getElementById('f-reporter');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Seleccionar persona —</option>'+
+    users.map(u=>`<option value="${u.id}"${u.id===cur?' selected':''}>${u.name} — ${u.role}</option>`).join('');
+}
+
+/* ══════════════════════════════════════
+   CREATE TICKET → Firestore
+══════════════════════════════════════ */
+async function createTicket(){
+  const reporter=document.getElementById('f-reporter').value;
+  const email=document.getElementById('f-email').value.trim();
+  const cat=document.getElementById('f-category').value;
+  const prio=document.getElementById('f-priority').value;
+  const subj=document.getElementById('f-subject').value.trim();
+  const desc=document.getElementById('f-description').value.trim();
+  const loc=document.getElementById('f-location').value.trim();
+  if(!reporter){showToast('⚠️ Selecciona la persona que registra');return;}
+  if(!subj||!desc){showToast('⚠️ Completa el asunto y la descripción');return;}
+  const btn=document.getElementById('btnCreateTicket');
+  btn.disabled=true;btn.textContent='Guardando…';
+  const cfg=SLA_CFG[prio];
+  const now=firebase.firestore.Timestamp.now();
+  const id=genId();
+  const ticket={
+    id, reporter, email, subject:subj, description:desc, category:cat, priority:prio,
+    location:loc, status:'open',
+    fecha_creacion:now, fecha_asignacion:null, fecha_resp:null, fecha_cierre:null,
+    sla_r:cfg.r, sla_s:cfg.s,
+    events:[{type:'open',action:'Incidencia abierta',time:now,body:`Registrado por ${userName(reporter)}`,attachments:[]}]
+  };
+  try{
+    await db.collection('tickets').doc(id).set(ticket);
+    closeModal('newModal');
+    ['f-email','f-subject','f-description','f-location'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('f-reporter').value='';
+    showToast(`✅ ${id} guardado en Firebase`);
+  }catch(e){showToast('❌ Error: '+e.message);}
+  btn.disabled=false;btn.textContent='✦ Crear registro';
+}
+
+/* ══════════════════════════════════════
+   USERS → Firestore
+══════════════════════════════════════ */
+function openUsersModal(){
+  if(!isAdmin){showToast('🔒 Solo el administrador puede gestionar personal');openModal('pwModal');return;}
+  editUid=null;cancelEditUser();openModal('usersModal');
+}
+
+function renderUserList(){
+  const el=document.getElementById('userList');if(!el)return;
+  if(!users.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-weight:600">Sin personal. Agrega el primero 👇</div>';return;}
+  const tC={};tickets.forEach(t=>{tC[t.reporter]=(tC[t.reporter]||0)+1;});
+  el.innerHTML=users.map(u=>`
+    <div class="user-item">
+      ${avatarEl(u,40)}
+      <div class="user-info"><div class="user-name">${u.name}</div><div class="user-role">${u.role} · ${tC[u.id]||0} reg.</div></div>
+      <div class="user-actions">
+        <button class="user-btn edit" onclick="editUser('${u.id}')">✏️</button>
+        <button class="user-btn del"  onclick="deleteUser('${u.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function editUser(uid){const u=getUser(uid);if(!u)return;editUid=uid;document.getElementById('edit-user-id').value=uid;document.getElementById('u-name').value=u.name;document.getElementById('u-role').value=u.role;document.getElementById('u-email').value=u.email||'';document.getElementById('u-color').value=u.color||'#1d4ed8';document.getElementById('addUserTitle').textContent='✏️ Editar miembro';}
+function cancelEditUser(){editUid=null;['edit-user-id','u-name','u-role','u-email'].forEach(id=>document.getElementById(id).value='');document.getElementById('u-color').value='#1d4ed8';document.getElementById('addUserTitle').textContent='➕ Agregar nuevo miembro';}
+
+async function saveUser(){
+  const name=document.getElementById('u-name').value.trim();
+  const role=document.getElementById('u-role').value.trim();
+  const email=document.getElementById('u-email').value.trim();
+  const color=document.getElementById('u-color').value;
+  if(!name||!role){showToast('⚠️ Completa nombre y puesto');return;}
+  try{
+    if(editUid){
+      await db.collection('users').doc(editUid).update({name,role,email,color});
+    }else{
+      await db.collection('users').add({name,role,email,color});
+    }
+    cancelEditUser();
+    showToast('✅ Personal guardado en Firebase');
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+async function deleteUser(uid){
+  const u=getUser(uid);if(!u)return;
+  const inUse=tickets.some(t=>t.reporter===uid);
+  const msg=inUse?`${u.name} tiene registros asignados. ¿Eliminar de todos modos?`:`¿Eliminar a ${u.name}?`;
+  if(!confirm(msg))return;
+  try{
+    await db.collection('users').doc(uid).delete();
+    showToast('🗑️ Persona eliminada de Firebase');
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+/* ══════════════════════════════════════
+   DETAIL PANEL
+══════════════════════════════════════ */
+function openDetail(id){
+  const t=tickets.find(tk=>tk.id===id);if(!t)return;
+  curId=id;
+  const sla=calcSLA(t);
+  const stL={open:'Abierto',progress:'En progreso',closed:'Cerrado'};
+  const prL={high:'Alta',medium:'Media',low:'Baja'};
+  document.getElementById('dp-subject').textContent=`${CAT_ICONS[t.category]||''} ${t.subject}`;
+  document.getElementById('dp-meta').innerHTML=`
+    <span class="badge st-${t.status}">${stL[t.status]}</span>
+    <span class="badge pr-${t.priority}">${prL[t.priority]}</span>
+    <span class="badge ${SLA_CLS[sla.ov]}">${SLA_LABELS[sla.ov]}</span>
+    <span style="font-size:11px;font-weight:700;color:var(--muted);font-family:'JetBrains Mono',monospace">${t.id||''}</span>`;
+  document.getElementById('dp-desc').textContent=t.description;
+  const usr=getUser(t.reporter);
+  document.getElementById('dp-info').innerHTML=`
+    <div class="info-item"><div class="info-k">👤 Registrado por</div><div class="info-v" style="display:flex;align-items:center;gap:7px">${usr?avatarInline(usr,22):''}<span>${userName(t.reporter)}</span></div></div>
+    <div class="info-item"><div class="info-k">💼 Puesto</div><div class="info-v">${usr?usr.role:'—'}</div></div>
+    <div class="info-item"><div class="info-k">📧 Email</div><div class="info-v">${t.email||'—'}</div></div>
+    <div class="info-item"><div class="info-k">📍 Ubicación</div><div class="info-v">${t.location||'—'}</div></div>
+    <div class="info-item"><div class="info-k">🗂 Tipo</div><div class="info-v">${CAT_ICONS[t.category]||''} ${catLabel(t.category)}</div></div>
+    <div class="info-item"><div class="info-k">📅 Apertura</div><div class="info-v">${fmtAbs(t.fecha_creacion)}</div></div>
+    <div class="info-item"><div class="info-k">💬 1ª Respuesta</div><div class="info-v">${fmtAbs(t.fecha_resp)}</div></div>
+    <div class="info-item"><div class="info-k">🔒 Cierre</div><div class="info-v">${fmtAbs(t.fecha_cierre)}</div></div>`;
+  renderSLAPanel(t,sla);
+  renderTimeline(t);
+  document.getElementById('btn-respond').style.display=(isAdmin&&!t.fecha_resp&&t.status!=='closed')?'':'none';
+  document.getElementById('btn-progress').style.display=(isAdmin&&t.status==='open')?'':'none';
+  document.getElementById('btn-close').style.display=(isAdmin&&t.status!=='closed')?'':'none';
+  document.getElementById('dOverlay').classList.add('on');
+  document.getElementById('dPanel').classList.add('on');
+}
+
+function renderSLAPanel(t,sla){
+  document.getElementById('dp-sla-badge').innerHTML=`<span class="badge ${SLA_CLS[sla.ov]}">${SLA_LABELS[sla.ov]}</span>`;
+  const rPct=Math.min(sla.rp,100),sPct=Math.min(sla.sp,100);
+  const rRem=(!t.fecha_resp&&t.status!=='closed')?fmtH(Math.max(0,sla.rl-(sla.re||0))):null;
+  const sRem=t.status!=='closed'?fmtH(Math.max(0,sla.sl-(sla.se||0))):null;
+  let realTimes='';
+  if(t.fecha_resp){
+    const rr=eH(t.fecha_creacion,t.fecha_resp);
+    realTimes=`<div class="sla-divider"></div><div>
+    <div class="sm-label" style="margin-bottom:8px;font-size:13px;font-weight:700;color:var(--text2)">📊 Tiempos reales registrados</div>
+    <div class="real-times-grid">
+      <div class="rt-item"><div class="rt-label">⚡ Tiempo de respuesta</div><div class="rt-val" style="color:var(--sla-${sla.rs})">${fmtH(rr)}</div></div>
+      ${t.fecha_cierre?`<div class="rt-item"><div class="rt-label">🏁 Tiempo de resolución</div><div class="rt-val" style="color:var(--sla-${sla.ss})">${fmtH(eH(t.fecha_creacion,t.fecha_cierre))}</div></div>`:''}
+    </div></div>`;
+  }
+  document.getElementById('dp-sla').innerHTML=`
+    <div style="margin-bottom:14px">
+      <div class="sm-hdr"><div class="sm-label">⚡ Primera Respuesta</div>
+        <div class="sm-vals"><span class="sm-current" style="color:var(--sla-${sla.rs})">${sla.re!=null?fmtH(sla.re):'—'} ${t.fecha_resp?'(registrada)':t.status==='closed'?'(sin registro)':'transcurridos'}</span><span class="sm-limit">/ límite ${fmtH(sla.rl)}</span></div>
+      </div>
+      <div class="sm-bar"><div class="sm-fill ${sla.rs}" style="width:${rPct}%"></div></div>
+      ${rRem&&sla.rs!=='breach'?`<div class="sm-note ${sla.rs}">⏱ Restante: ${rRem}</div>`:''}
+      ${sla.rs==='breach'&&!t.fecha_resp?`<div class="sm-note breach">⚠ Excedido por ${fmtH(sla.re-sla.rl)}</div>`:''}
+    </div>
+    <div class="sla-divider"></div>
+    <div style="margin-top:14px">
+      <div class="sm-hdr"><div class="sm-label">🏁 Resolución Total</div>
+        <div class="sm-vals"><span class="sm-current" style="color:var(--sla-${sla.ss})">${sla.se!=null?fmtH(sla.se):'—'} ${t.status==='closed'?'(cerrado)':'transcurridos'}</span><span class="sm-limit">/ límite ${fmtH(sla.sl)}</span></div>
+      </div>
+      <div class="sm-bar"><div class="sm-fill ${sla.ss}" style="width:${sPct}%"></div></div>
+      ${sRem&&sla.ss!=='breach'?`<div class="sm-note ${sla.ss}">⏱ Restante: ${sRem}</div>`:''}
+      ${sla.ss==='breach'&&t.status!=='closed'?`<div class="sm-note breach">⚠ Excedido por ${fmtH(sla.se-sla.sl)}</div>`:''}
+    </div>${realTimes}`;
+}
+
+function refreshSLA(){const t=tickets.find(tk=>tk.id===curId);if(t)renderSLAPanel(t,calcSLA(t));}
+
+function renderTimeline(t){
+  const events=t.events||[];
+  document.getElementById('dp-timeline').innerHTML=events.map((ev,evIdx)=>{
+    let attachHtml='';
+    if(ev.attachments&&ev.attachments.length){
+      attachHtml='<div class="tl-attachment">'+ev.attachments.map((a,aIdx)=>{
+        // Source: embedded base64 or subcollection ref
+        const src=a.data||null;
+        const isRef=a.isRef||false;
+
+        if(a.type==='photo'){
+          if(src){
+            return`<img class="tl-img-preview" src="${src}" alt="${a.name}" onclick="openLightbox('${src}')" title="Clic para ampliar">
+                   <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:3px">📷 ${a.name} · ${a.size}</div>`;
+          } else if(isRef){
+            return`<div class="tl-attach-item" onclick="loadRefAttachment('${t.id}','${a.refId}','photo',${evIdx},${aIdx})" style="cursor:pointer">
+              <div class="tl-attach-icon">📷</div>
+              <div class="tl-attach-info"><div class="tl-attach-name">${a.name}</div><div class="tl-attach-meta">Fotografía · ${a.size} · Toca para cargar</div></div>
+              <div class="tl-attach-action">⬇ Cargar</div>
+            </div>`;
+          }
+        } else {
+          if(src){
+            // PDF: create a downloadable link from base64
+            return`<a class="tl-attach-item" href="${src}" download="${a.name}" onclick="event.stopPropagation()">
+              <div class="tl-attach-icon">📄</div>
+              <div class="tl-attach-info"><div class="tl-attach-name">${a.name}</div><div class="tl-attach-meta">PDF · ${a.size}</div></div>
+              <div class="tl-attach-action">⬇ Descargar</div>
+            </a>`;
+          } else if(isRef){
+            return`<div class="tl-attach-item" onclick="loadRefAttachment('${t.id}','${a.refId}','pdf',${evIdx},${aIdx})" style="cursor:pointer">
+              <div class="tl-attach-icon">📄</div>
+              <div class="tl-attach-info"><div class="tl-attach-name">${a.name}</div><div class="tl-attach-meta">PDF · ${a.size} · Toca para cargar</div></div>
+              <div class="tl-attach-action">⬇ Cargar</div>
+            </div>`;
+          }
+        }
+        return'';
+      }).join('')+'</div>';
+    }
+    return`<div class="tl-event ev-${ev.type}">
+      <div class="tl-hdr"><span class="tl-action">${ev.action}</span><span class="tl-time">${fmtRel(ev.time)}</span></div>
+      ${ev.body?`<div class="tl-body">${ev.body}</div>`:''}
+      ${attachHtml}
+    </div>`;
+  }).join('');
+}
+
+// Load a large attachment stored in subcollection and open it
+async function loadRefAttachment(ticketId, refId, kind, evIdx, aIdx){
+  showToast('⏳ Cargando archivo…');
+  try{
+    const doc=await db.collection('tickets').doc(ticketId).collection('attachments').doc(refId).get();
+    if(!doc.exists){showToast('❌ Archivo no encontrado');return;}
+    const att=doc.data();
+    if(kind==='photo'){
+      openLightbox(att.data);
+    } else {
+      // Open PDF in new tab
+      const win=window.open();
+      win.document.write(`<iframe src="${att.data}" style="width:100%;height:100%;border:none"></iframe>`);
+    }
+  }catch(e){showToast('❌ Error al cargar: '+e.message);}
+}
+
+function closeDetail(){
+  document.getElementById('dOverlay').classList.remove('on');
+  document.getElementById('dPanel').classList.remove('on');
+  curId=null;
+}
+
+/* ══════════════════════════════════════
+   TICKET ACTIONS → Firestore
+══════════════════════════════════════ */
+async function addNote(){
+  const inp=document.getElementById('noteInput'),txt=inp.value.trim();
+  if(!txt||!curId)return;
+  const t=tickets.find(tk=>tk.id===curId);
+  const ev={type:'note',action:'Nota de seguimiento',time:firebase.firestore.Timestamp.now(),body:txt,attachments:[]};
+  const newEvents=[...(t.events||[]),ev];
+  try{
+    await db.collection('tickets').doc(curId).update({events:newEvents});
+    inp.value='';
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+/* ══════════════════════════════════════
+   FILE UPLOAD → Firestore Base64
+   Imágenes: comprimidas a máx 800px / 70% calidad → ~100-300 KB
+   PDFs:     guardados en chunks si superan 800 KB
+   Límite visible al usuario: 5 MB por archivo
+══════════════════════════════════════ */
+function attachFile(input, kind){
+  if(!curId){showToast('⚠️ Abre un ticket primero');input.value='';return;}
+  const file=input.files[0]; if(!file){return;}
+
+  const maxMB=5;
+  if(file.size>maxMB*1048576){showToast(`⚠️ El archivo supera los ${maxMB} MB`);input.value='';return;}
+
+  // Disable buttons
+  document.getElementById('btnAttachPhoto').style.pointerEvents='none';
+  document.getElementById('btnAttachPDF').style.pointerEvents='none';
+
+  // Show processing indicator
+  const progDiv=document.createElement('div');
+  progDiv.className='upload-progress';
+  progDiv.id='uploadProg';
+  progDiv.innerHTML=`<span>${kind==='photo'?'🖼️ Procesando imagen':'📄 Leyendo archivo'}…</span><div class="upload-bar-wrap"><div class="upload-bar-fill" id="uploadFill" style="width:40%;animation:loadAnim 1s ease infinite"></div></div>`;
+  document.getElementById('dp-timeline').prepend(progDiv);
+
+  if(kind==='photo'){
+    // Compress image before saving to Firestore
+    compressImage(file, 800, 0.72, async(base64)=>{
+      await saveAttachmentToFirestore(base64, file.name, fmtSize(file.size), kind);
+    });
+  } else {
+    // PDF: read as base64 directly
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      await saveAttachmentToFirestore(e.target.result, file.name, fmtSize(file.size), kind);
+    };
+    reader.onerror=()=>{
+      showToast('❌ Error al leer el archivo');
+      cleanup(input);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function compressImage(file, maxPx, quality, callback){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      // Calculate new dimensions keeping aspect ratio
+      let w=img.width, h=img.height;
+      if(w>maxPx||h>maxPx){
+        if(w>h){h=Math.round(h*maxPx/w);w=maxPx;}
+        else{w=Math.round(w*maxPx/h);h=maxPx;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      callback(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveAttachmentToFirestore(base64, name, size, kind){
+  const t=tickets.find(tk=>tk.id===curId);
+  const noteText=document.getElementById('noteInput').value.trim();
+  const label=kind==='photo'?'Fotografía adjunta':'Documento adjunto';
+  const typeIcon=kind==='photo'?'📷':'📄';
+
+  const attachment={name, size, data:base64, type:kind};
+  const ev={
+    type:'attachment',
+    action:`${typeIcon} ${label}${noteText?' — con nota':''}`,
+    time:firebase.firestore.Timestamp.now(),
+    body:noteText||'',
+    attachments:[attachment]
+  };
+
+  try{
+    // Check if adding this event would exceed Firestore 1MB doc limit
+    // Firestore doc limit: 1 MB. Base64 adds ~33% overhead.
+    // We store attachments in a separate subcollection if data is large
+    const base64Size=base64.length;
+
+    if(base64Size > 700000){
+      // Large file → store in separate 'attachments' subcollection
+      const attRef=await db.collection('tickets').doc(curId)
+        .collection('attachments').add({...attachment, createdAt:firebase.firestore.Timestamp.now()});
+      // Store reference in event instead of full data
+      const evRef={
+        ...ev,
+        attachments:[{name, size, type:kind, refId:attRef.id, isRef:true}]
+      };
+      const newEvents=[...(t.events||[]),evRef];
+      await db.collection('tickets').doc(curId).update({events:newEvents});
+    } else {
+      // Normal size → embed directly in ticket document
+      const newEvents=[...(t.events||[]),ev];
+      await db.collection('tickets').doc(curId).update({events:newEvents});
+    }
+
+    if(noteText)document.getElementById('noteInput').value='';
+    showToast(`✅ ${kind==='photo'?'Fotografía':'Documento'} guardado en Firestore`);
+  }catch(e){
+    console.error(e);
+    if(e.code==='resource-exhausted'||e.message.includes('too large')||e.message.includes('exceeds')){
+      showToast('⚠️ Archivo muy grande para Firestore. Usa imágenes menores a 3 MB o PDFs de 1 página.');
+    } else {
+      showToast('❌ Error al guardar: '+e.message);
+    }
+  }
+
+  document.getElementById('uploadProg')?.remove();
+  document.getElementById('btnAttachPhoto').style.pointerEvents='';
+  document.getElementById('btnAttachPDF').style.pointerEvents='';
+  const input=document.getElementById(kind==='photo'?'filePhoto':'filePDF');
+  if(input)input.value='';
+}
+
+async function registerResponse(){
+  if(!isAdmin){showToast('🔒 Solo el administrador puede registrar respuestas');return;}
+  if(!curId)return;
+  const t=tickets.find(tk=>tk.id===curId);if(t.fecha_resp)return;
+  const now=firebase.firestore.Timestamp.now();
+  const el=eH(t.fecha_creacion,now.toDate()),ok=el<=t.sla_r;
+  const ev={type:'response',action:'Primera respuesta registrada',time:now,body:`Tiempo: ${fmtH(el)} — ${ok?'✅ dentro del SLA':`❌ FUERA del SLA (exceso: ${fmtH(el-t.sla_r)})`} (límite: ${fmtH(t.sla_r)})`,attachments:[]};
+  try{
+    await db.collection('tickets').doc(curId).update({fecha_resp:now,events:firebase.firestore.FieldValue.arrayUnion(ev)});
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+async function changeStatus(ns){
+  if(!isAdmin){showToast('🔒 Solo el administrador puede cambiar el estado');return;}
+  if(!curId)return;
+  const t=tickets.find(tk=>tk.id===curId);
+  const now=firebase.firestore.Timestamp.now();
+  let updates={status:ns};
+  let ev;
+  if(ns==='closed'){
+    const el=eH(t.fecha_creacion,now.toDate()),ok=el<=t.sla_s;
+    updates.fecha_cierre=now;
+    ev={type:'closed',action:'Registro cerrado',time:now,body:`Resolución: ${fmtH(el)} — ${ok?'✅ dentro del SLA':`❌ FUERA del SLA (exceso: ${fmtH(el-t.sla_s)})`}`,attachments:[]};
+  }else{
+    ev={type:'progress',action:'En progreso',time:now,body:'Incidencia en atención',attachments:[]};
+  }
+  try{
+    const newEvents=[...(t.events||[]),ev];
+    await db.collection('tickets').doc(curId).update({...updates,events:newEvents});
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+/* LIGHTBOX */
+function openLightbox(src){document.getElementById('lightboxImg').src=src;document.getElementById('lightbox').classList.add('on');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('on');document.getElementById('lightboxImg').src='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+
+/* RESIZE */
+window.addEventListener('resize',()=>{
+  const ma=document.getElementById('sidebarMobileActions');
+  if(ma)ma.style.display=window.innerWidth<=640?'block':'none';
+  if(window.innerWidth>640)closeSidebar();
+});
+
+init();
+</script>
+</body>
+</html>
